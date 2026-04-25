@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "12:00"
+      timezone: Etc/UTC
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+    # Dependabot will keep SHA pins intact when bumping — it updates both
+    # the SHA and the matching `# vX.Y.Z` comment together. Review the diff
+    # before merging the same way you'd review the agent-hooks bump PR.
