@@ -14,11 +14,12 @@ It is NOT about the broader `op` CLI — for that, see the `cli-usage` skill.
 
 **Never read the contents of `.env` from this skill.** Only use metadata commands (`ls`, `file`, `stat`) on it. The mount feeds application processes; reading the FIFO when 1Password is unlocked streams real secrets into the conversation transcript (and any log/cache touching it).
 
-This rule is backed by structural defenses:
-- The upstream agent-hook (installed by `/1password:setup`) blocks Bash calls when 1P is locked.
-- The plugin's own FIFO-read blocker (`plugins/1password/hooks/hooks.json` → `scripts/block-fifo-read.sh`) blocks Read/Edit/MultiEdit/Write/NotebookEdit calls whose target is any named pipe — regardless of 1P lock state. Auto-loads on plugin install.
+This rule is backed by:
+- **When 1P is locked**: the mount itself — the FIFO can't be read without unlock.
+- **When 1P is unlocked**: the plugin's own FIFO-read blocker (`plugins/1password/hooks/hooks.json` → `scripts/block-fifo-read.sh`) denies Read/Edit/MultiEdit/Write/NotebookEdit calls whose target is any named pipe. Auto-loads on plugin install.
+- **The upstream agent-hook** (installed by `/1password:setup`) is a complementary *config validator* — fires on Bash, catches misconfigured destinations, surfaces "fix this in 1P" errors. It's [explicitly fail-open](https://github.com/1Password/agent-hooks/blob/main/hooks/1password-validate-mounted-env-files/README.md), not a security tool.
 
-The rule itself is the backstop for cases neither hook catches (e.g., a future tool that reads files via some other mechanism).
+The rule itself is the backstop for cases none of the above catch (e.g., a future tool that reads files via some other mechanism).
 
 ## Detect current state first
 
