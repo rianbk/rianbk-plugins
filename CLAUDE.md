@@ -9,6 +9,10 @@ A personal Claude Code plugin marketplace owned by Rian Brooks-Kane (`rian@rianb
 ## Plugin contract (read before adding or modifying anything)
 
 - **Marketplace manifest** (`.claude-plugin/marketplace.json`) is the single source of truth for which plugins exist. Each plugin must be listed in the `plugins: []` array with a `source` field pointing at its directory. If a plugin's `plugins/<name>/` directory exists but isn't registered here, it's invisible to installers.
+- **`marketplace.json` schema gotchas** (caught by `claude plugin validate .`):
+  - The marketplace-level description goes under `metadata.description`, NOT at the root.
+  - Don't add a `$schema` key at the root — the validator rejects it as unrecognized even though JSON tolerates it.
+  - Required root keys: `name`, `owner`, `plugins`.
 - **Plugin manifest** (`plugins/<name>/.claude-plugin/plugin.json`) only requires `name`, but always include `version`, `description`, `author`, `repository`, `license`, and `keywords` for marketplace presentation.
 - **Two descriptions, keep them in sync**: the `/plugin install` UI reads `description` from the plugin's entry in `marketplace.json`, NOT from `plugin.json`. Update both together when the plugin's scope changes.
 - **Components auto-discover** from `skills/`, `commands/`, `agents/`, `hooks/`, `.mcp.json`, `.lsp.json`, `monitors/` — don't add manifest paths unless the layout deviates.
