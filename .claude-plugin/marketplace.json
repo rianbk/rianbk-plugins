@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "rianbk-plugins",
+  "description": "1Password workflow plugin for Claude Code: local .env mount, agent-hook validator, and op CLI usage",
+  "owner": {
+    "name": "Rian Brooks-Kane",
+    "email": "rian@rianbk.com",
+    "url": "https://github.com/rianbk"
+  },
+  "plugins": [
+    {
+      "name": "1password",
+      "description": "1Password workflow for Claude Code: local .env mount + agent-hook validator (with /1password:setup), plus op CLI usage guidance",
+      "category": "security",
+      "source": "./plugins/1password"
+    }
+  ]
+}

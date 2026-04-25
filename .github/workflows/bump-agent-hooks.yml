@@ -1,0 +1,106 @@
+name: Bump agent-hooks pin
+
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Mondays at 12:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Detect current pin and upstream HEAD
+        id: shas
+        run: |
+          set -euo pipefail
+          UPSTREAM=$(git ls-remote https://github.com/1Password/agent-hooks HEAD | cut -f1)
+          CURRENT=$(grep -hoE 'checkout [0-9a-f]{40}' plugins/1password/commands/setup.md | head -1 | awk '{print $2}')
+          if [ -z "$CURRENT" ]; then
+            echo "Could not extract current SHA from plugins/1password/commands/setup.md — aborting" >&2
+            exit 1
+          fi
+          echo "Upstream HEAD: $UPSTREAM"
+          echo "Current pin:   $CURRENT"
+
+          # Sanity: every 40-char SHA in plugin files should match the current pin.
+          # If multiple distinct SHAs exist, prior bump was incomplete — refuse to proceed.
+          UNIQUE=$(find plugins -type f \( -name '*.md' -o -name '*.json' \) \
+                   -exec grep -hoE '[0-9a-f]{40}' {} + | sort -u)
+          COUNT=$(printf '%s\n' "$UNIQUE" | wc -l)
+          if [ "$COUNT" -ne 1 ]; then
+            echo "Found multiple distinct 40-char SHAs across plugin files — aborting:" >&2
+            printf '%s\n' "$UNIQUE" >&2
+            exit 1
+          fi
+
+          {
+            echo "current=$CURRENT"
+            echo "upstream=$UPSTREAM"
+            if [ "$UPSTREAM" = "$CURRENT" ]; then
+              echo "needs_bump=false"
+            else
+              echo "needs_bump=true"
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build PR body with diff log
+        if: steps.shas.outputs.needs_bump == 'true'
+        run: |
+          set -euo pipefail
+          OLD='${{ steps.shas.outputs.current }}'
+          NEW='${{ steps.shas.outputs.upstream }}'
+          git clone --quiet https://github.com/1Password/agent-hooks /tmp/agent-hooks
+          {
+            echo "Bumps the pinned 1Password agent-hooks SHA used by \`/1password:setup\`."
+            echo
+            echo "**Old:** \`$OLD\`  "
+            echo "**New:** \`$NEW\`"
+            echo
+            echo "## Manual security review required"
+            echo
+            echo "Do **not** auto-merge. The pinned SHA is part of this plugin's supply-chain story — review the upstream commits below before approving. Pay attention to changes in \`install.sh\` and any new files the installer drops into target repos."
+            echo
+            echo "## Commits between pins"
+            echo
+            echo '```'
+            git -C /tmp/agent-hooks log --oneline "$OLD..$NEW"
+            echo '```'
+            echo
+            echo "## Files changed"
+            echo
+            echo '```'
+            git -C /tmp/agent-hooks diff --stat "$OLD..$NEW"
+            echo '```'
+          } > /tmp/pr-body.md
+
+      - name: Replace SHA across plugin files
+        if: steps.shas.outputs.needs_bump == 'true'
+        run: |
+          set -euo pipefail
+          OLD='${{ steps.shas.outputs.current }}'
+          NEW='${{ steps.shas.outputs.upstream }}'
+          find plugins -type f \( -name '*.md' -o -name '*.json' \) \
+            -exec sed -i "s/$OLD/$NEW/g" {} +
+          if grep -rq "$OLD" plugins/; then
+            echo "Old SHA still present after substitution — aborting" >&2
+            grep -rn "$OLD" plugins/ >&2 || true
+            exit 1
+          fi
+
+      - name: Open bump PR
+        if: steps.shas.outputs.needs_bump == 'true'
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+        with:
+          branch: bump/agent-hooks-${{ steps.shas.outputs.upstream }}
+          title: "bump(agent-hooks): pin to ${{ steps.shas.outputs.upstream }}"
+          commit-message: |
+            bump(agent-hooks): ${{ steps.shas.outputs.current }} → ${{ steps.shas.outputs.upstream }}
+          body-path: /tmp/pr-body.md
+          delete-branch: true
+          labels: dependencies
