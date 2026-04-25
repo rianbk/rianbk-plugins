@@ -42,6 +42,11 @@ Targets the **local-`.env` mount** workflow (`.env` as a named pipe from the 1Pa
 
 The agent-hooks installer is **SHA-pinned** for supply-chain reproducibility. The SHA appears in `plugins/1password/commands/setup.md` (frontmatter `allowed-tools` entry + Step 3 prose + Step 3 `git checkout` instruction) and `plugins/1password/skills/env-mount/SKILL.md` (manual-install snippet) — all four occurrences must agree. Bumps are automated by `.github/workflows/bump-agent-hooks.yml` (weekly cron + `workflow_dispatch`); when upstream `main` differs from the pinned SHA, the workflow opens a PR that includes the upstream commit log + diff stat. **Never auto-merge the bump PR** — review the diff for changes to `install.sh` or what the installer drops into target repos before approving.
 
+## CI workflows
+
+- `.github/workflows/validate.yml` — runs `claude plugin validate .` on every push and PR. Catches malformed `marketplace.json`/`plugin.json` and skill/command frontmatter before merge. No secrets, no auth — the validate command is local-structure-only.
+- `.github/workflows/bump-agent-hooks.yml` — described above. Weekly auto-PR for upstream `agent-hooks` SHA bumps.
+
 GitHub Actions in `.github/workflows/` use **SHA-pinned** third-party actions for the same supply-chain reason. When updating an action, look up the new tag's commit SHA via `git ls-remote --tags <repo>` and update both the SHA and the `# vX.Y.Z` comment together.
 
 The mount feature is **beta, macOS/Linux only**. Refuse Windows requests cleanly.
