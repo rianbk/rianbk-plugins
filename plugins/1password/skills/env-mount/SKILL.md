@@ -12,7 +12,13 @@ It is NOT about the broader `op` CLI — for that, see the `cli-usage` skill.
 
 ## Hard rule for the agent
 
-**Never read the contents of `.env` from this skill.** Only use metadata commands (`ls`, `file`, `stat`) on it. The mount feeds application processes; reading the FIFO when 1Password is unlocked streams real secrets into the conversation transcript (and any log/cache touching it). The agent-hook protects the locked case; this rule covers the unlocked case.
+**Never read the contents of `.env` from this skill.** Only use metadata commands (`ls`, `file`, `stat`) on it. The mount feeds application processes; reading the FIFO when 1Password is unlocked streams real secrets into the conversation transcript (and any log/cache touching it).
+
+This rule is backed by structural defenses:
+- The upstream agent-hook (installed by `/1password:setup`) blocks Bash calls when 1P is locked.
+- The plugin's own FIFO-read blocker (`plugins/1password/hooks/hooks.json` → `scripts/block-fifo-read.sh`) blocks Read/Edit/MultiEdit/Write/NotebookEdit calls whose target is any named pipe — regardless of 1P lock state. Auto-loads on plugin install.
+
+The rule itself is the backstop for cases neither hook catches (e.g., a future tool that reads files via some other mechanism).
 
 ## Detect current state first
 

@@ -23,13 +23,14 @@ Then run `/1password:setup` inside any project where you want to use a 1Password
 
 ## Security model
 
-Three layers, each covering a different case:
+Four layers, each covering a different case:
 
-1. **Agent-hook validator** (installed by `/1password:setup`) — fires on every `Bash` tool call in the repo. Fails-closed if 1Password is locked: shell commands won't run until you unlock. This is the runtime guardrail. Fails-open (no-op) if 1Password's database is unreachable — so it's a guardrail, not a hard security boundary.
-2. **Hard rule against agent reads of `.env`** (in the command body and `env-mount` skill) — Claude won't `cat`/`grep`/`head` the `.env` mount itself, even when 1Password is unlocked. Prevents real secrets from streaming into Claude's conversation transcript and any log/cache touching it.
-3. **SHA-pinned agent-hooks installer** — `/1password:setup` installs from a specific commit of [github.com/1Password/agent-hooks](https://github.com/1Password/agent-hooks), not whatever upstream `main` happens to be. Bumps are automated weekly via [a GitHub Action](https://github.com/rianbk/rianbk-plugins/blob/main/.github/workflows/bump-agent-hooks.yml) that opens a PR with the upstream commit log + diff stat for review. Bump PRs are not auto-merged.
+1. **Upstream agent-hook validator** (installed by `/1password:setup`) — fires on every **Bash** tool call in the repo. Fails-closed if 1Password is locked: Bash commands won't run until you unlock. Fails-open (no-op) if 1Password's database is unreachable — so it's a guardrail, not a hard security boundary. **Caveat:** the upstream validator only matches Bash, so non-Bash file tools (Read, Edit, Write, etc.) bypass it entirely. Layer 2 covers that gap.
+2. **FIFO-read blocker** (this plugin's own hook, ships in `plugins/1password/hooks/hooks.json`) — auto-loads at plugin install. PreToolUse matcher on `Read|Edit|MultiEdit|Write|NotebookEdit` runs `scripts/block-fifo-read.sh`, which denies any tool call whose target path is a named pipe. Closes the gap in layer 1: the most common AI-agent path for "read this file" is now structurally blocked when the file is a 1Password mount.
+3. **Hard rule against agent reads of `.env`** (in the command body and `env-mount` skill) — instructional guardrail telling Claude not to read `.env` via any tool. Backstop for layer 2 (in case the matcher misses a tool we didn't enumerate).
+4. **SHA-pinned upstream installer** — `/1password:setup` installs from a specific commit of [github.com/1Password/agent-hooks](https://github.com/1Password/agent-hooks), not whatever upstream `main` happens to be. Bumps are automated weekly via [a GitHub Action](https://github.com/rianbk/rianbk-plugins/blob/main/.github/workflows/bump-agent-hooks.yml) that opens a PR with the upstream commit log + diff stat for review. Bump PRs are not auto-merged.
 
-Honest caveats: once 1Password is unlocked, the FIFO is readable like any file in the same shell session — protection here comes from the locked state plus the validator + soft rule, not from the pipe being unreadable post-unlock. The hook also doesn't protect against an attacker with shell access in your unlocked session.
+Honest caveats: once 1Password is unlocked, the FIFO is readable like any file in the same shell session — protection here comes from the locked state plus the layered hooks + soft rule, not from the pipe being unreadable post-unlock. The plugin can't protect against an attacker with shell access in your unlocked session, or against tools we haven't enumerated in layer 2's matcher (e.g., a future CC tool that reads files via a different mechanism).
 
 ## Requirements
 
