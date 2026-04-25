@@ -11,7 +11,7 @@
 # the conversation transcript.
 #
 # This is a workaround. Track upstream support at:
-#   https://github.com/1Password/agent-hooks (issue TBD)
+#   https://github.com/1Password/agent-hooks/issues/28
 #
 # Decision rule: any tool call whose target path is a FIFO is denied.
 # Regular files, directories, and missing paths are allowed.
