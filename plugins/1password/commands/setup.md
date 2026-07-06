@@ -1,6 +1,6 @@
 ---
 description: Wire up the 1Password agent-hook validator in the current repo and scaffold a .env.example. Idempotent.
-allowed-tools: Bash(ls:*), Bash(file:*), Bash(test:*), Bash(stat:*), Bash(cat .claude/settings.json), Bash(head -200 .env.example), Bash(grep -i 1password .claude/settings.json), Bash(git rev-parse --show-toplevel), Bash(git clone https://github.com/1Password/agent-hooks /tmp/1p-agent-hooks), Bash(git -C /tmp/1p-agent-hooks fetch origin), Bash(git -C /tmp/1p-agent-hooks checkout 22c246013ccf52113c6151708a4140b31aa47a95), Bash(/tmp/1p-agent-hooks/install.sh:*)
+allowed-tools: Bash(ls:*), Bash(file:*), Bash(test:*), Bash(stat:*), Bash(cat .claude/settings.json), Bash(head -200 .env.example), Bash(grep -i 1password .claude/settings.json), Bash(git rev-parse --show-toplevel), Bash(git clone https://github.com/1Password/agent-hooks /tmp/1p-agent-hooks), Bash(git -C /tmp/1p-agent-hooks fetch origin), Bash(git -C /tmp/1p-agent-hooks checkout 55b9f8638626a36316b434d9dd4cd2745e2d54a2), Bash(/tmp/1p-agent-hooks/install.sh:*)
 ---
 
 ## Context
@@ -50,14 +50,14 @@ If only one of the two exists (partial install), report the inconsistency to the
 
 ### Step 3 — Install the upstream agent-hook (pinned SHA)
 
-The agent-hooks installer is pinned to commit `22c246013ccf52113c6151708a4140b31aa47a95` for supply-chain reproducibility. Every install runs from exactly this revision, regardless of where upstream `main` has moved.
+The agent-hooks installer is pinned to commit `55b9f8638626a36316b434d9dd4cd2745e2d54a2` for supply-chain reproducibility. Every install runs from exactly this revision, regardless of where upstream `main` has moved.
 
 Run these as **separate** Bash calls (do not combine into a single shell block — each must match an `allowed-tools` entry to skip the permission prompt).
 
 Sync `/tmp/1p-agent-hooks` to the pinned SHA. Use the "1p-agent-hooks repo" line in the context above:
 - **If "ABSENT"**: run `git clone https://github.com/1Password/agent-hooks /tmp/1p-agent-hooks`
 - **If "PRESENT"**: run `git -C /tmp/1p-agent-hooks fetch origin`
-- **(Always next)**: run `git -C /tmp/1p-agent-hooks checkout 22c246013ccf52113c6151708a4140b31aa47a95`
+- **(Always next)**: run `git -C /tmp/1p-agent-hooks checkout 55b9f8638626a36316b434d9dd4cd2745e2d54a2`
 
 Then run the installer, substituting the absolute path from "Current directory" in the context for `<current-dir>` (do NOT use `$(pwd)` or any subshell):
 
