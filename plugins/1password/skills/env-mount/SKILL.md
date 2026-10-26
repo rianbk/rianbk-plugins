@@ -66,7 +66,7 @@ Always prefer `/1password:setup` over manual installation — it's idempotent, p
 
 ```bash
 git clone https://github.com/1Password/agent-hooks /tmp/1p-agent-hooks
-git -C /tmp/1p-agent-hooks checkout 22c246013ccf52113c6151708a4140b31aa47a95   # pinned in /1password:setup
+git -C /tmp/1p-agent-hooks checkout eee091562c494f79903de36f7c4a88d12c54b1d3   # pinned in /1password:setup
 /tmp/1p-agent-hooks/install.sh --agent claude-code --target-dir "$(pwd)"
 ```
 
